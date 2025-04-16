@@ -8,9 +8,19 @@ output: html_document
 ```{r}
 library(spatstat.geom)
 library(sf)
+```
+
+Load in our Covariate Data:
+
+```{r}
 load('BC_Covariates.Rda')
 ls()
 head(summary(DATA))
+```
+
+Load in our species data and convert it to a ppp object:
+
+```{r}
 bees <- read.csv('dataset.csv')
 coordinates(bees) <- ~decimalLongitude + decimalLatitude
 proj4string(bees) <- CRS("+proj=longlat +datum=WGS84")
@@ -23,7 +33,114 @@ win <- as.owin(window_sf)
 
 bee_ppp <- ppp(x = bee_coords[,1], y = bee_coords[,2], window = win)
 table(inside.owin(bee_ppp$x, bee_ppp$y, win))  
+summary(bee_ppp)
+```
+
+We can plot the elevation as a persp figure, with our bee data points overlayed on top:
+
+```{r}
+library(viridis)
+
+fig <- persp(DATA$Elevation,
+             theta = -15, phi = 30, # rotation
+             expand = 7, # z-axis expansion
+             border = NA, #remove grid borders
+             #apron = TRUE, #apron around edge
+             shade = 0.3, # shading
+             box = FALSE, # axes on/off
+             main = "", # title
+             visible = TRUE, #Supporting calculations
+             colmap = viridis(200)) # colour pallet
+
+perspPoints(bee_ppp,
+            Z = DATA$Elevation, 
+            M = fig,
+            pch = 20, 
+            cex = 0.6)
+```
+
+Additionally, we can plot each covariate with the points overlayed on top:
+
+```{r}
 plot(DATA$Elevation, main = "Elevation + Bee Observations")
 plot(bee_ppp, add = TRUE, pch = 20, cex = 0.6)
 ```
 
+```{r}
+plot(DATA$Forest, main = "Forest Cover + Bee Observations")
+plot(bee_ppp, add = TRUE, pch = 20, cex = 0.6)
+```
+
+```{r}
+plot(DATA$HFI, main = "Human Footprint Index + Bee Observations")
+plot(bee_ppp, add = TRUE, pch = 20, cex = 0.6)
+```
+
+```{r}
+plot(DATA$Dist_Water, main = "Distance to Water + Bee Observations")
+plot(bee_ppp, add = TRUE, pch = 20, cex = 0.6)
+```
+
+We can also plot the density of each covariate at each bee obserevation compared to the density of each covariate across the sampling window. A difference in the curves may tell us that Yellowjackets may prefer or avoid areas with certain values of that covariate. 
+
+
+```{r}
+library(ggplot2)
+
+#elevation 
+elev_df <- data.frame(
+  value = c(DATA$Elevation[], DATA$Elevation[bee_ppp]),
+  group = c(rep("Background", length(DATA$Elevation[])),
+            rep("Bee Points", length(DATA$Elevation[bee_ppp])))
+)
+
+ggplot(elev_df, aes(x = value, fill = group)) +
+  geom_density(alpha = 0.4) +
+  labs(title = "Elevation Density", x = "Elevation", y = "Density") +
+  scale_fill_manual(values = c("blue", "red")) +
+  theme_minimal()
+```
+
+```{r}
+#forest cover
+forest_df <- data.frame(
+  value = c(DATA$Forest[], DATA$Forest[bee_ppp]),
+  group = c(rep("Background", length(DATA$Forest[])),
+            rep("Bee Points", length(DATA$Forest[bee_ppp])))
+)
+
+ggplot(forest_df, aes(x = value, fill = group)) +
+  geom_density(alpha = 0.4) +
+  labs(title = "Forest Cover Density", x = "Forest", y = "Density") +
+  scale_fill_manual(values = c("blue", "red")) +
+  theme_minimal()
+```
+
+```{r}
+#distance to water
+water_df <- data.frame(
+  value = c(DATA$Dist_Water[], DATA$Dist_Water[bee_ppp]),
+  group = c(rep("Background", length(DATA$Dist_Water[])),
+            rep("Bee Points", length(DATA$Dist_Water[bee_ppp])))
+)
+
+ggplot(water_df, aes(x = value, fill = group)) +
+  geom_density(alpha = 0.4) +
+  labs(title = "Distance to Water Density", x = "Dist_Water", y = "Density") +
+  scale_fill_manual(values = c("blue", "red")) +
+  theme_minimal()
+```
+
+```{r}
+hfi_df <- data.frame(
+  value = c(DATA$HFI[], DATA$HFI[bee_ppp]),
+  group = c(rep("Background", length(DATA$HFI[])),
+            rep("Bee Points", length(DATA$HFI[bee_ppp])))
+)
+
+ggplot(hfi_df, aes(x = value, fill = group)) +
+  geom_density(alpha = 0.4) +
+  labs(title = "HFI Density", x = "HFI", y = "Density") +
+  scale_fill_manual(values = c("blue", "red")) +
+  theme_minimal()
+```
