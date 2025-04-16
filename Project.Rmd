@@ -27,3 +27,9 @@ plot(DATA$Elevation, main = "Elevation + Bee Observations")
 plot(bee_ppp, add = TRUE, pch = 20, cex = 0.6)
 ```
 
+```{r}
+
+plot(bees)
+
+```
+
