@@ -42,7 +42,9 @@ rho_elev <- rhohat(bee_ppp, elev)
 rho_forest <- rhohat(bee_ppp, forest)
 rho_hfi <- rhohat(bee_ppp, hfi)
 rho_distwater <- rhohat(bee_ppp, distwater)
+```
 
+```{r}
 plot(rho_elev,
      main = "",
      xlab = "Elevation",
@@ -63,6 +65,7 @@ plot(rho_distwater,
 # Check for collinearity
 cor.im(elev, forest, hfi, distwater, use = "pairwise.complete.obs")
 ```
+
 
 1. Elevation
 - Strong non-linear effect.
