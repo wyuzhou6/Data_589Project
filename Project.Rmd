@@ -1,6 +1,7 @@
+
 ---
-title: "Project"
-author: "Yuzhou Wang"
+title: "Exploration of Wasps in BC"
+author: "Aamna Amer, Jason Suwito, Lance Xu, Yuzhou Wang"
 date: "2025-04-10"
 output: html_document
 ---
