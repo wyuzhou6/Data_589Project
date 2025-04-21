@@ -1,0 +1,3 @@
+load("/Users/aamnaamer/Data_589Project/BC_Covariates.Rda")
+head(BC_Covariates.Rda)
+head("BC_Covariates.Rda")
