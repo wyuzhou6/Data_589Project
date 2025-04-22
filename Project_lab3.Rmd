@@ -66,36 +66,47 @@ plot(rho_distwater,
 cor.im(elev, forest, hfi, distwater, use = "pairwise.complete.obs")
 ```
 
+1.  Elevation
 
-1. Elevation
-- Strong non-linear effect.
-- High density of observations at low elevations, with a sharp drop-off.
-- Suggests an inverse or log-like smooth effect.
-- Justifies a non-linear smooth $f_1(\text{elev})$.
+-   Strong non-linear effect.
+-   High density of observations at low elevations, with a sharp drop-off.
+-   Suggests an inverse or log-like smooth effect.
+-   Justifies a non-linear smooth $f_1(\text{elev})$.
 
-2. Forest Cover
-- Non-linear relationship with peak density around 10–30% forest cover, declining afterward.
-- Suggests unimodal or possibly a polynomial-like smooth effect.
-- Justifies $f_2(\text{forest})$.
+2.  Forest Cover
 
-3. Human Footprint Index (HFI)
-- Very sharp increase in density at high HFI values (>0.8).
-- Indicates a steep non-linear response—possibly threshold-like.
-- Justifies $f_3(\text{hfi})$.
+-   Non-linear relationship with peak density around 10–30% forest cover, declining afterward.
+-   Suggests unimodal or possibly a polynomial-like smooth effect.
+-   Justifies $f_2(\text{forest})$.
 
-4. Distance to Water
-- No consistent trend, but some localized peaks.
-- Appears to have weak or noisy association with density.
-- Still, some non-linear relationship is present.
-- Justifies using a smooth $f_4(\text{distwater})$, though effect may be small.
+3.  Human Footprint Index (HFI)
 
-5. Collinearity Check
-- Correlation coefficients are all < 0.3 in magnitude.
-- No strong collinearity between variables.
-- All variables can be included without serious multicollinearity concerns.
+-   Very sharp increase in density at high HFI values (\>0.8).
+-   Indicates a steep non-linear response—possibly threshold-like.
+-   Justifies $f_3(\text{hfi})$.
 
-$$ 
-\log(\lambda) = \beta_0 + s_1(\text{elev}) + s_2(\text{forest}) + s_3(\text{hfi}) + s_4(\text{distwater}) 
+4.  Distance to Water
+
+-   No consistent trend, but some localized peaks.
+-   Appears to have weak or noisy association with density.
+-   Still, some non-linear relationship is present.
+-   Justifies using a smooth $f_4(\text{distwater})$, though effect may be small.
+
+5.  Collinearity Check
+
+-   Correlation coefficients are all \< 0.3 in magnitude.
+-   No strong collinearity between variables.
+-   All variables can be included without serious multicollinearity concerns.
+
+Proposed Model Formula:
+
+
+$$
+\log(\lambda) = \beta_0 
++ \beta_1 \cdot \text{elev} 
++ \beta_2 \cdot \text{forest} + \beta_3 \cdot \text{forest}^2 
++ \beta_4 \cdot \text{hfi} + \beta_5 \cdot \text{hfi}^2 
++ \beta_6 \cdot \text{distwater}
 $$
 
 ```{r, cache=TRUE}
@@ -107,44 +118,45 @@ covariates_list <- lapply(covariates_list, function(im) {
 })
 
 model_null <- ppm(bee_ppp ~ 1, covariates = covariates_list)
-model_null
+print("=== NULL MODEL: ===")
+print(model_null)
 
-model_linear <- ppm(bee_ppp ~ elev + forest + hfi + distwater, covariates = covariates_list)
-model_linear
+model_proposed <- ppm(bee_ppp ~ 
+                             elev + 
+                             forest + I(forest^2) + 
+                             hfi + I(hfi^2) + 
+                             distwater,
+                           covariates = covariates_list)
+print("=== PROPOSED MODEL: ===")
+print(model_proposed)
 
-model_quad <- ppm(bee_ppp ~ elev + I(elev^2) +
-                             forest + I(forest^2) +
-                             hfi + I(hfi^2) +
-                             distwater + I(distwater^2),
-                  covariates = covariates_list)
-model_quad
-
+print("=== AIC NULL MODEL: ===")
 AIC(model_null)
-AIC(model_linear)
-AIC(model_quad)
+print("=== AIC PROPOSED MODEL: ===")
+AIC(model_proposed)
 
-anova(model_linear, model_quad, test = "Chi")
+print("=== ANOVA TEST: ===")
+anova(model_null, model_proposed, test = "Chi")
 ```
 
-Quadratic Model Formula:
-$$
-\text{Formula}
-$$
-
-
 ```{r, cache=TRUE}
-intensity_im <- predict(model_quad, type = "trend", n = 200)
+intensity_im <- predict(model_proposed, type = "trend", n = 200)
 log_intensity_im <- log(intensity_im)
 
 plot(log_intensity_im,
      se = FALSE,
      superimpose = FALSE,
-     main = "Log Fitted Intensity (Quadratic Model)")
+     main = "Log Fitted Intensity")
+
+plot(log_intensity_im,
+     se = FALSE,
+     superimpose = FALSE,
+     main = "Log Fitted Intensity")
 
 plot(bee_ppp,
      pch = 16,
      cex = 0.6,
-     cols = "black",
+     cols = "green",
      add = TRUE)
 
 med_elev <- median(elev, na.rm = TRUE)
@@ -153,86 +165,25 @@ med_hfi <- median(hfi, na.rm = TRUE)
 med_dist <- median(distwater, na.rm = TRUE)
 
 
-elev_effect <- effectfun(model_quad, "elev", 
-                         forest = med_forest,
-                         hfi = med_hfi,
-                         distwater = med_dist,
-                         se.fit = FALSE)
-
-forest_effect <- effectfun(model_quad, "forest", 
-                           elev = med_elev,
-                           hfi = med_hfi,
-                           distwater = med_dist,
-                           se.fit = FALSE)
-
-hfi_effect <- effectfun(model_quad, "hfi", 
-                        elev = med_elev,
-                        forest = med_forest,
-                        distwater = med_dist,
-                        se.fit = FALSE)
-
-dist_effect <- effectfun(model_quad, "distwater", 
-                         elev = med_elev,
-                         forest = med_forest,
-                         hfi = med_hfi,
-                         se.fit = FALSE)
-
-plot(elev_effect,
-     legend = FALSE,
-     main = "Effect of Elevation\nat median forest, hfi, distance")
-plot(forest_effect,
-     legend = FALSE,
-     main = "Effect of Forest\nat median elev, hfi, distance")
-plot(hfi_effect,
-     legend = FALSE,
-     main = "Effect of HFI\nat median elev, forest, distance")
-plot(dist_effect,
-     legend = FALSE,
-     main = "Effect of Distance to Water\nat median elev, forest, hfi")
-```
-
-Quadratic Model Did not Converge. So we can show how the linear model performed too
-
-```{r, cache=TRUE}
-intensity_im <- predict(model_linear, type = "trend", n = 200)
-log_intensity_im <- log(intensity_im)
-
-plot(log_intensity_im,
-     se = FALSE,
-     superimpose = FALSE,
-     main = "Log Fitted Intensity (Quadratic Model)")
-
-plot(bee_ppp,
-     pch = 16,
-     cex = 0.6,
-     cols = "black",
-     add = TRUE)
-
-med_elev <- median(elev, na.rm = TRUE)
-med_forest <- median(forest, na.rm = TRUE)
-med_hfi <- median(hfi, na.rm = TRUE)
-med_dist <- median(distwater, na.rm = TRUE)
-
-
-elev_effect <- effectfun(model_linear, "elev", 
+elev_effect <- effectfun(model_proposed, "elev", 
                          forest = med_forest,
                          hfi = med_hfi,
                          distwater = med_dist,
                          se.fit = TRUE)
 
-forest_effect <- effectfun(model_linear, "forest", 
+forest_effect <- effectfun(model_proposed, "forest", 
                            elev = med_elev,
                            hfi = med_hfi,
                            distwater = med_dist,
                            se.fit = TRUE)
 
-hfi_effect <- effectfun(model_linear, "hfi", 
+hfi_effect <- effectfun(model_proposed, "hfi", 
                         elev = med_elev,
                         forest = med_forest,
                         distwater = med_dist,
                         se.fit = TRUE)
 
-dist_effect <- effectfun(model_linear, "distwater", 
+dist_effect <- effectfun(model_proposed, "distwater", 
                          elev = med_elev,
                          forest = med_forest,
                          hfi = med_hfi,
@@ -252,21 +203,22 @@ plot(dist_effect,
      main = "Effect of Distance to Water\nat median elev, forest, hfi")
 ```
 
+
 ```{r}
-quadrat.test(model_quad, nx = 5, ny = 5)
+quadrat.test(model_proposed, nx = 5, ny = 5)
 ```
 
 ```{r}
-res <- residuals(model_quad)
+res <- residuals(model_proposed)
 print(res)
-plot(res, cols = "transparent")
+plot(res, main = "Model Residual", cols = "transparent")
 ```
 
 ```{r, cache=TRUE}
-par_res_elev <- parres(model_quad, covariate = "elev")
-par_res_forest <- parres(model_quad, covariate = "forest")
-par_res_hfi <- parres(model_quad, covariate = "hfi")
-par_res_dist <- parres(model_quad, covariate = "distwater")
+par_res_elev <- parres(model_proposed, covariate = "elev")
+par_res_forest <- parres(model_proposed, covariate = "forest")
+par_res_hfi <- parres(model_proposed, covariate = "hfi")
+par_res_dist <- parres(model_proposed, covariate = "distwater")
 
 plot(par_res_elev,
      legend = FALSE,
