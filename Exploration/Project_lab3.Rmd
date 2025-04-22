@@ -1,0 +1,246 @@
+---
+title: "Project"
+author: "Jason Suwito"
+date: "2025-04-10"
+output: html_document
+---
+
+```{r, message=FALSE}
+library(spatstat)
+library(sp)
+library(sf)
+
+load('BC_Covariates.Rda')
+BC_Cov <- DATA
+BC_Cov <- na.omit(BC_Cov)
+head(summary(BC_Cov))
+bees <- read.csv('dataset.csv')
+coordinates(bees) <- ~decimalLongitude + decimalLatitude
+proj4string(bees) <- CRS("+proj=longlat +datum=WGS84")
+aea_crs <- CRS("+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs")
+bees_proj <- spTransform(bees, aea_crs)
+bee_coords <- coordinates(bees_proj)
+head(bees,2)
+window_sf <- st_as_sf(DATA$Window)
+win <- as.owin(window_sf) 
+bee_ppp <- ppp(x = bee_coords[,1], y = bee_coords[,2], window = win)
+```
+
+```{r, cache=TRUE}
+elev <- BC_Cov$Elevation
+forest <- BC_Cov$Forest
+hfi <- BC_Cov$HFI
+distwater <- BC_Cov$Dist_Water
+
+# Replace NA values with median for each covariate
+elev[is.na(elev)] <- median(elev, na.rm = TRUE)
+forest[is.na(forest)] <- median(forest, na.rm = TRUE)
+hfi[is.na(hfi)] <- median(hfi, na.rm = TRUE)
+distwater[is.na(distwater)] <- median(distwater, na.rm = TRUE)
+
+rho_elev <- rhohat(bee_ppp, elev)
+rho_forest <- rhohat(bee_ppp, forest)
+rho_hfi <- rhohat(bee_ppp, hfi)
+rho_distwater <- rhohat(bee_ppp, distwater)
+```
+
+```{r}
+plot(rho_elev,
+     main = "",
+     xlab = "Elevation",
+     xlim = c(0, max(elev)))
+plot(rho_forest,
+     main = "",
+     xlab = "Forest Cover"
+     )
+plot(rho_hfi,
+     main = "",
+     xlab = "HFI"
+     )
+plot(rho_distwater,
+     main = "",
+     xlab = "Distance Water"
+     )
+
+# Check for collinearity
+cor.im(elev, forest, hfi, distwater, use = "pairwise.complete.obs")
+```
+
+1.  Elevation
+
+-   Strong non-linear effect.
+-   High density of observations at low elevations, with a sharp drop-off.
+-   Suggests an inverse or log-like smooth effect.
+-   Justifies a non-linear smooth $f_1(\text{elev})$.
+
+2.  Forest Cover
+
+-   Non-linear relationship with peak density around 10–30% forest cover, declining afterward.
+-   Suggests unimodal or possibly a polynomial-like smooth effect.
+-   Justifies $f_2(\text{forest})$.
+
+3.  Human Footprint Index (HFI)
+
+-   Very sharp increase in density at high HFI values (\>0.8).
+-   Indicates a steep non-linear response—possibly threshold-like.
+-   Justifies $f_3(\text{hfi})$.
+
+4.  Distance to Water
+
+-   No consistent trend, but some localized peaks.
+-   Appears to have weak or noisy association with density.
+-   Still, some non-linear relationship is present.
+-   Justifies using a smooth $f_4(\text{distwater})$, though effect may be small.
+
+5.  Collinearity Check
+
+-   Correlation coefficients are all \< 0.3 in magnitude.
+-   No strong collinearity between variables.
+-   All variables can be included without serious multicollinearity concerns.
+
+Proposed Model Formula:
+
+
+$$
+\log(\lambda) = \beta_0 
++ \beta_1 \cdot \text{elev} 
++ \beta_2 \cdot \text{forest} + \beta_3 \cdot \text{forest}^2 
++ \beta_4 \cdot \text{hfi} + \beta_5 \cdot \text{hfi}^2 
++ \beta_6 \cdot \text{distwater}
+$$
+
+```{r, cache=TRUE}
+covariates_list <- list(elev = elev, forest = forest, hfi = hfi, distwater = distwater)
+
+covariates_list <- lapply(covariates_list, function(im) {
+  im$v[is.na(im$v)] <- median(as.vector(im$v), na.rm = TRUE)
+  return(im)
+})
+
+model_null <- ppm(bee_ppp ~ 1, covariates = covariates_list)
+print("=== NULL MODEL: ===")
+print(model_null)
+
+model_proposed <- ppm(bee_ppp ~ 
+                             elev + 
+                             forest + I(forest^2) + 
+                             hfi + I(hfi^2) + 
+                             distwater,
+                           covariates = covariates_list)
+print("=== PROPOSED MODEL: ===")
+print(model_proposed)
+
+print("=== AIC NULL MODEL: ===")
+AIC(model_null)
+print("=== AIC PROPOSED MODEL: ===")
+AIC(model_proposed)
+
+print("=== ANOVA TEST: ===")
+anova(model_null, model_proposed, test = "Chi")
+```
+
+```{r, cache=TRUE}
+intensity_im <- predict(model_proposed, type = "trend", n = 200)
+log_intensity_im <- log(intensity_im)
+
+plot(log_intensity_im,
+     se = FALSE,
+     superimpose = FALSE,
+     main = "Log Fitted Intensity")
+
+plot(log_intensity_im,
+     se = FALSE,
+     superimpose = FALSE,
+     main = "Log Fitted Intensity")
+
+plot(bee_ppp,
+     pch = 16,
+     cex = 0.6,
+     cols = "green",
+     add = TRUE)
+
+med_elev <- median(elev, na.rm = TRUE)
+med_forest <- median(forest, na.rm = TRUE)
+med_hfi <- median(hfi, na.rm = TRUE)
+med_dist <- median(distwater, na.rm = TRUE)
+
+
+elev_effect <- effectfun(model_proposed, "elev", 
+                         forest = med_forest,
+                         hfi = med_hfi,
+                         distwater = med_dist,
+                         se.fit = TRUE)
+
+forest_effect <- effectfun(model_proposed, "forest", 
+                           elev = med_elev,
+                           hfi = med_hfi,
+                           distwater = med_dist,
+                           se.fit = TRUE)
+
+hfi_effect <- effectfun(model_proposed, "hfi", 
+                        elev = med_elev,
+                        forest = med_forest,
+                        distwater = med_dist,
+                        se.fit = TRUE)
+
+dist_effect <- effectfun(model_proposed, "distwater", 
+                         elev = med_elev,
+                         forest = med_forest,
+                         hfi = med_hfi,
+                         se.fit = TRUE)
+
+plot(elev_effect,
+     legend = FALSE,
+     main = "Effect of Elevation\nat median forest, hfi, distance")
+plot(forest_effect,
+     legend = FALSE,
+     main = "Effect of Forest\nat median elev, hfi, distance")
+plot(hfi_effect,
+     legend = FALSE,
+     main = "Effect of HFI\nat median elev, forest, distance")
+plot(dist_effect,
+     legend = FALSE,
+     main = "Effect of Distance to Water\nat median elev, forest, hfi")
+```
+
+
+```{r}
+quadrat.test(model_proposed, nx = 5, ny = 5)
+```
+
+```{r}
+res <- residuals(model_proposed)
+print(res)
+plot(res, main = "Model Residual", cols = "transparent")
+```
+
+```{r, cache=TRUE}
+par_res_elev <- parres(model_proposed, covariate = "elev")
+par_res_forest <- parres(model_proposed, covariate = "forest")
+par_res_hfi <- parres(model_proposed, covariate = "hfi")
+par_res_dist <- parres(model_proposed, covariate = "distwater")
+
+plot(par_res_elev,
+     legend = FALSE,
+     lwd = 2,
+     main = "Partial Residuals: Elevation",
+     xlab = "Elevation (m)")
+
+plot(par_res_forest,
+     legend = FALSE,
+     lwd = 2,
+     main = "Partial Residuals: Forest Cover",
+     xlab = "Forest Cover (%)")
+
+plot(par_res_hfi,
+     legend = FALSE,
+     lwd = 2,
+     main = "Partial Residuals: HFI",
+     xlab = "Human Footprint Index")
+
+plot(par_res_dist,
+     legend = FALSE,
+     lwd = 2,
+     main = "Partial Residuals: Distance to Water",
+     xlab = "Distance to Water (m)")
+```
