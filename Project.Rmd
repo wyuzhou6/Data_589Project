@@ -42,7 +42,7 @@ table(inside.owin(bee_ppp$x, bee_ppp$y, win))
 #summary(bee_ppp)
 ```
 
-We can plot the elevation as a persp figure, with our bee data points overlayed on top:
+We can plot the elevation as a persp figure, with our wasp data points overlayed on top:
 
 ```{r, message=FALSE, warning=FALSE}
 library(viridis)
@@ -175,7 +175,7 @@ quadrat.test(bee_ppp, nx = 5, ny = 5)
 
 ```{r}
 plot(intensity(Q, image = TRUE),
-     main = "Beilschmiedia pendula intensity")
+     main = "Vespula pensylvanica intensity")
 
 plot(bee_ppp,
      pch = 16,
@@ -191,13 +191,13 @@ plot(bee_ppp,
 ```
 
 
-The quadrat-based intensity map of Beilschmiedia pendula shows clear spatial heterogeneity in the species’ distribution. The highest intensities are concentrated in the southern and southeastern parts of the study region, while most of the northern areas show near-zero intensity. This suggests that B. pendula is either ecologically constrained to certain environments or is under-sampled in other areas.
+The quadrat-based intensity map of Vespula pensylvanica shows clear spatial heterogeneity in the species’ distribution. The highest intensities are concentrated in the southern and southeastern parts of the study region, while most of the northern areas show near-zero intensity. This suggests that V. pensylvanica is either ecologically constrained to certain environments or is under-sampled in other areas.
 
 ### Interpretation
 
-In this analysis, I performed a quadrat test to evaluate whether the spatial distribution of bee observations in British Columbia follows a pattern of complete spatial randomness (CSR). The region was divided into a 5x5 grid (with 21 valid quadrats), and bee counts were tallied within each quadrat.  
+In this analysis, I performed a quadrat test to evaluate whether the spatial distribution of wasp observations in British Columbia follows a pattern of complete spatial randomness (CSR). The region was divided into a 5x5 grid (with 21 valid quadrats), and bee counts were tallied within each quadrat.  
 
-The resulting map shows clear spatial heterogeneity in bee observations. Some quadrats, especially in the southern region, have very high counts (e.g., 322 and 66), while others—particularly in the north—have counts close to or exactly zero. This visual pattern already suggests a non-random distribution.  
+The resulting map shows clear spatial heterogeneity in wasp observations. Some quadrats, especially in the southern region, have very high counts (e.g., 322 and 66), while others—particularly in the north—have counts close to or exactly zero. This visual pattern already suggests a non-random distribution.  
 
 The quadrat test produced the following results:  
 Chi-squared = 7290.7, df = 20, p-value < 2.2e-16  
@@ -205,7 +205,7 @@ These results indicate a highly significant deviation from CSR. The extremely lo
 
 ### Conclusion
 
-There is strong evidence that the bees are not distributed randomly, but rather show significant spatial clustering. This may reflect environmental, ecological, or human factors influencing bee presence in the region.
+There is strong evidence that the bees are not distributed randomly, but rather show significant spatial clustering. This may reflect environmental, ecological, or human factors influencing wasp presence in the region.
 
 
 ```{r}
@@ -230,7 +230,7 @@ plot(bee_ppp,
      add = TRUE)
 ```
 
-The kernel density estimate of bee_ppp shows that bee observations are strongly clustered in the southern part of the study area. The intensity surface highlights areas with the highest densities in yellow, suggesting these are potential hotspots for bee activity or observation effort. The presence of many zero- or low-intensity zones in the north may indicate ecological constraints, lower sampling effort, or habitat unsuitability.
+The kernel density estimate of bee_ppp shows that wasp observations are strongly clustered in the southern part of the study area. The intensity surface highlights areas with the highest densities in yellow, suggesting these are potential hotspots for wasp activity or observation effort. The presence of many zero- or low-intensity zones in the north may indicate ecological constraints, lower sampling effort, or habitat unsuitability.
 
 ```{r}
 
@@ -280,7 +280,7 @@ pvals <- eval.im(pchisq(LR,
 plot(pvals, main = "Local p-values")
 ```
 
-The local likelihood ratio test (LRT) highlights strong spatial clustering of bee observations in the southern region. The corresponding p-value map confirms that these clusters are statistically significant, with p-values close to zero (blue areas). This suggests that the observed clustering is unlikely to have occurred under complete spatial randomness (CSR) and indicates potential environmental or ecological drivers influencing bee distribution.
+The local likelihood ratio test (LRT) highlights strong spatial clustering of wasp observations in the southern region. The corresponding p-value map confirms that these clusters are statistically significant, with p-values close to zero (blue areas). This suggests that the observed clustering is unlikely to have occurred under complete spatial randomness (CSR) and indicates potential environmental or ecological drivers influencing bee distribution.
 
 ```{r}
 bee_elev <- BC_Cov$Elevation
@@ -296,7 +296,7 @@ quadratcount(bee_ppp, tess = V)
 rho <- rhohat(bee_ppp, elev)
 
 
-plot(rho, main = "Intensity of bees vs elevation")
+plot(rho, main = "Intensity of wasps vs elevation")
 
 library(spatstat.explore)
 
